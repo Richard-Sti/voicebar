@@ -1,5 +1,5 @@
 """
-Platform abstraction for linux-voice.
+Platform abstraction for voicebar.
 
 Provides a common interface for platform-specific operations:
 - Text injection into focused windows

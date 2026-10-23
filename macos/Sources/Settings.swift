@@ -92,7 +92,7 @@ final class Settings: ObservableObject {
         }
     }
 
-    /// Seeds settings from ~/.config/linux-voice/config.toml on first launch,
+    /// Seeds settings from ~/.config/voicebar/config.toml on first launch,
     /// with the Python tool's macOS defaults for anything it does not set.
     private static func importPythonConfigOnce() {
         let d = UserDefaults.standard

@@ -1,12 +1,12 @@
 [Unit]
 Description=Voice-to-text dictation tool
-Documentation=https://github.com/Richard-Sti/linux-voice
+Documentation=https://github.com/Richard-Sti/voicebar
 After=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/linux-voice
+ExecStart=/usr/bin/voicebar
 Restart=on-failure
 RestartSec=5
 

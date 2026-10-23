@@ -347,7 +347,7 @@ wheels = [
 ]
 
 [[package]]
-name = "linux-voice"
+name = "voicebar"
 version = "0.5.1"
 source = { editable = "." }
 dependencies = [

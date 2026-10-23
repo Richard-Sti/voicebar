@@ -1,12 +1,17 @@
 import Foundation
 
-/// Reads ~/.config/linux-voice/config.toml (the Python tool's config), used
+/// Reads ~/.config/voicebar/config.toml (the Python tool's config), used
 /// once to seed the app's settings on first launch.
 // ponytail: flat TOML subset (tables, strings, numbers, bools, one-line string
 // arrays), enough for that file.
 struct Config {
-    static let url = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent(".config/linux-voice/config.toml")
+    static let url: URL = {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let new = home.appendingPathComponent(".config/voicebar/config.toml")
+        // ponytail: pre-rename location, drop once nobody uses it
+        return FileManager.default.fileExists(atPath: new.path)
+            ? new : home.appendingPathComponent(".config/linux-voice/config.toml")
+    }()
 
     private var tables: [String: [String: Any]] = [:]
 

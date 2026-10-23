@@ -5,7 +5,7 @@ Run: uv run python test_grapheme_count.py
 import importlib.util
 from pathlib import Path
 
-spec = importlib.util.spec_from_file_location("linux_voice", Path(__file__).parent / "linux-voice.py")
+spec = importlib.util.spec_from_file_location("voicebar", Path(__file__).parent / "voicebar.py")
 lv = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(lv)
 

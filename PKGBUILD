@@ -1,10 +1,10 @@
 # Maintainer: Will Handley <wh260@cantab.ac.uk>
-pkgname=linux-voice
+pkgname=voicebar
 pkgver=0.5.1
 pkgrel=1
 pkgdesc="Voice-to-text dictation tool for Linux (X11) using OpenAI Whisper"
 arch=('any')
-url="https://github.com/Richard-Sti/linux-voice"
+url="https://github.com/Richard-Sti/voicebar"
 license=('MIT')
 depends=(
     'python>=3.11'
@@ -20,9 +20,9 @@ optdepends=(
     'python-groq: for Groq backend (faster, alternative to OpenAI)'
 )
 source=(
-    'linux-voice.py'
+    'voicebar.py'
     'platform_support.py'
-    'linux-voice.service'
+    'voicebar.service'
     'README.md'
     'LICENSE'
 )
@@ -31,15 +31,15 @@ sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 package() {
 
     # Install main script and platform support module
-    install -Dm755 linux-voice.py "$pkgdir/usr/lib/$pkgname/linux-voice.py"
+    install -Dm755 voicebar.py "$pkgdir/usr/lib/$pkgname/voicebar.py"
     install -Dm644 platform_support.py "$pkgdir/usr/lib/$pkgname/platform_support.py"
 
     # Create symlink in /usr/bin
     mkdir -p "$pkgdir/usr/bin"
-    ln -s "/usr/lib/$pkgname/linux-voice.py" "$pkgdir/usr/bin/linux-voice"
+    ln -s "/usr/lib/$pkgname/voicebar.py" "$pkgdir/usr/bin/voicebar"
 
     # Install systemd user service
-    install -Dm644 linux-voice.service "$pkgdir/usr/lib/systemd/user/linux-voice.service"
+    install -Dm644 voicebar.service "$pkgdir/usr/lib/systemd/user/voicebar.service"
 
     # Install documentation
     install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"

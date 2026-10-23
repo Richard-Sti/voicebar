@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-linux-voice: Voice-to-text dictation tool for Linux (X11) and macOS
+voicebar: Voice-to-text dictation tool for Linux (X11) and macOS
 
 Hold Ctrl+Space to record, release to transcribe and type.
 Toggle mode: Press Ctrl+Space to start, press again to stop.
@@ -31,9 +31,11 @@ from pynput import keyboard
 MIN_RECORDING_SECONDS = 0.3
 # Maximum recording duration in seconds (safety timeout)
 MAX_RECORDING_SECONDS = 120
-# Load config from ~/.config/linux-voice/config.toml if it exists
+# Load config from ~/.config/voicebar/config.toml if it exists
 CONFIG = {}
-CONFIG_PATH = Path.home() / ".config" / "linux-voice" / "config.toml"
+CONFIG_PATH = Path.home() / ".config" / "voicebar" / "config.toml"
+if not CONFIG_PATH.exists():  # ponytail: pre-rename location, drop once nobody uses it
+    CONFIG_PATH = Path.home() / ".config" / "linux-voice" / "config.toml"
 if CONFIG_PATH.exists():
     try:
         import tomllib
@@ -59,7 +61,7 @@ WHISPER_MODEL = CONFIG.get("transcription", {}).get("model", None)
 if WHISPER_MODEL is None:
     WHISPER_MODEL = "whisper-large-v3-turbo" if BACKEND == "groq" else "whisper-1"
 MODE = os.environ.get(
-    "LINUX_VOICE_MODE",
+    "VOICEBAR_MODE",
     CONFIG.get("hotkey", {}).get("mode", "hold"),
 )
 
@@ -597,7 +599,7 @@ Instruction: {instruction}{context_note}"""
     def _save_for_recovery(self, audio: np.ndarray):
         """Keep audio that could not be sent, and say so in the focused window."""
         print("\033[91mNo internet connection\033[0m")
-        recovery_path = Path("/tmp/linux-voice-recovery.wav")
+        recovery_path = Path("/tmp/voicebar-recovery.wav")
         if recovery_path.exists():
             # Don't overwrite - just remind user to recover first
             msg = "(no internet - say 'recover' first)"
@@ -710,7 +712,7 @@ Instruction: {instruction}{context_note}"""
 
     def recover_audio(self):
         """Recover and transcribe audio from a failed attempt."""
-        recovery_path = Path("/tmp/linux-voice-recovery.wav")
+        recovery_path = Path("/tmp/voicebar-recovery.wav")
         if not recovery_path.exists():
             print("No recovery file found")
             try:
@@ -951,7 +953,7 @@ Instruction: {instruction}{context_note}"""
         edit_str = "+".join(m.capitalize() for m in _edit_modifier_types) + f"+{_key_label}"
         delete_str = "+".join(m.capitalize() for m in _delete_modifier_types) + f"+{_delete_key_name.upper()}"
 
-        print(f"linux-voice started (mode: {MODE}, backend: {BACKEND})")
+        print(f"voicebar started (mode: {MODE}, backend: {BACKEND})")
         print(f"  {hotkey_str}: {'toggle' if MODE == 'toggle' else 'hold to'} record")
         print(f"  {submit_str}: record and submit (press Enter)")
         print(f"  {edit_str}: record correction instruction")
@@ -1000,7 +1002,7 @@ Instruction: {instruction}{context_note}"""
 
 def recover():
     """Transcribe the recovery audio file from a failed attempt."""
-    recovery_path = Path("/tmp/linux-voice-recovery.wav")
+    recovery_path = Path("/tmp/voicebar-recovery.wav")
     if not recovery_path.exists():
         print("No recovery file found")
         return
@@ -1028,7 +1030,7 @@ def install_agent():
         return
 
     plist_dir = Path.home() / "Library" / "LaunchAgents"
-    plist_path = plist_dir / "com.linux-voice.agent.plist"
+    plist_path = plist_dir / "com.voicebar.agent.plist"
     log_dir = Path.home() / "Library" / "Logs"
 
     python_path = sys.executable
@@ -1052,7 +1054,7 @@ def install_agent():
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.linux-voice.agent</string>
+    <string>com.voicebar.agent</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/zsh</string>
@@ -1066,9 +1068,9 @@ def install_agent():
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>{log_dir}/linux-voice.log</string>
+    <string>{log_dir}/voicebar.log</string>
     <key>StandardErrorPath</key>
-    <string>{log_dir}/linux-voice.err</string>
+    <string>{log_dir}/voicebar.err</string>
     <key>EnvironmentVariables</key>
     <dict>
 {env_block}
@@ -1084,10 +1086,10 @@ def install_agent():
     print(f"  launchctl bootstrap gui/$(id -u) {plist_path}")
     print()
     print("To restart after changes:")
-    print(f"  launchctl kickstart -k gui/$(id -u)/com.linux-voice.agent")
+    print(f"  launchctl kickstart -k gui/$(id -u)/com.voicebar.agent")
     print()
     print("To stop and remove:")
-    print(f"  launchctl bootout gui/$(id -u)/com.linux-voice.agent")
+    print(f"  launchctl bootout gui/$(id -u)/com.voicebar.agent")
 
 
 def uninstall_agent():
@@ -1096,12 +1098,12 @@ def uninstall_agent():
         print("LaunchAgent uninstallation is only for macOS.")
         return
 
-    plist_path = Path.home() / "Library" / "LaunchAgents" / "com.linux-voice.agent.plist"
+    plist_path = Path.home() / "Library" / "LaunchAgents" / "com.voicebar.agent.plist"
 
     # Try to unload first
     uid = os.getuid()
     subprocess.run(
-        ["launchctl", "bootout", f"gui/{uid}/com.linux-voice.agent"],
+        ["launchctl", "bootout", f"gui/{uid}/com.voicebar.agent"],
         check=False,
         capture_output=True,
     )

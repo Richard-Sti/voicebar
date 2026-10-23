@@ -1,6 +1,6 @@
-# linux-voice
+# VoiceBar
 
-Voice-to-text dictation tool for Linux (X11) using OpenAI Whisper.
+Voice-to-text dictation for Linux (X11) and macOS (VoiceBar menu-bar app) using Whisper.
 
 Originally a fork of [williamjameshandley/linux-voice](https://github.com/williamjameshandley/linux-voice) by Will Handley; now developed independently.
 
@@ -23,15 +23,15 @@ Hold Ctrl+Space to record speech, release to transcribe and type into the focuse
 sudo apt install xdotool ffmpeg python3-pip python3-venv
 
 # Create virtual environment (recommended)
-python3 -m venv ~/.local/share/linux-voice
-source ~/.local/share/linux-voice/bin/activate
+python3 -m venv ~/.local/share/voicebar
+source ~/.local/share/voicebar/bin/activate
 
 # Install Python packages
 pip install pynput sounddevice numpy openai
 
 # Download and install script
-curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/Richard-Sti/linux-voice/main/linux-voice.py
-chmod +x ~/.local/bin/linux-voice
+curl -o ~/.local/bin/voicebar https://raw.githubusercontent.com/Richard-Sti/voicebar/main/voicebar.py
+chmod +x ~/.local/bin/voicebar
 ```
 
 ### Fedora
@@ -41,15 +41,15 @@ chmod +x ~/.local/bin/linux-voice
 sudo dnf install xdotool ffmpeg python3-pip
 
 # Create virtual environment (recommended)
-python3 -m venv ~/.local/share/linux-voice
-source ~/.local/share/linux-voice/bin/activate
+python3 -m venv ~/.local/share/voicebar
+source ~/.local/share/voicebar/bin/activate
 
 # Install Python packages
 pip install pynput sounddevice numpy openai
 
 # Download and install script
-curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/Richard-Sti/linux-voice/main/linux-voice.py
-chmod +x ~/.local/bin/linux-voice
+curl -o ~/.local/bin/voicebar https://raw.githubusercontent.com/Richard-Sti/voicebar/main/voicebar.py
+chmod +x ~/.local/bin/voicebar
 ```
 
 ### Arch Linux
@@ -59,15 +59,15 @@ chmod +x ~/.local/bin/linux-voice
 sudo pacman -S xdotool ffmpeg python-numpy python-pynput python-sounddevice python-openai
 
 # Download and install script
-curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/Richard-Sti/linux-voice/main/linux-voice.py
-chmod +x ~/.local/bin/linux-voice
+curl -o ~/.local/bin/voicebar https://raw.githubusercontent.com/Richard-Sti/voicebar/main/voicebar.py
+chmod +x ~/.local/bin/voicebar
 ```
 
 Or build the package:
 
 ```bash
-git clone https://github.com/Richard-Sti/linux-voice
-cd linux-voice
+git clone https://github.com/Richard-Sti/voicebar
+cd voicebar
 makepkg -si
 ```
 
@@ -81,8 +81,8 @@ makepkg -si
 pip install pynput sounddevice numpy openai
 
 # Download script
-curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/Richard-Sti/linux-voice/main/linux-voice.py
-chmod +x ~/.local/bin/linux-voice
+curl -o ~/.local/bin/voicebar https://raw.githubusercontent.com/Richard-Sti/voicebar/main/voicebar.py
+chmod +x ~/.local/bin/voicebar
 ```
 
 ### macOS menu-bar app (VoiceBar)
@@ -95,7 +95,7 @@ open ~/Applications/VoiceBar.app
 macos/check.sh          # offline self-check; --mic tests recording, --network the API key
 ```
 
-On first launch it imports the hotkeys, backend, language, prompt and API key from `~/.config/linux-voice/config.toml`. Allow it under Privacy & Security › Accessibility (needed to paste) and Microphone. macOS ties these grants to the code signature, so `build.sh` signs with a local self-signed certificate named "VoiceBar Local Signing" when one is in the login keychain; without it the build is signed ad hoc and the grants are lost on every rebuild. To create the certificate once:
+On first launch it imports the hotkeys, backend, language, prompt and API key from `~/.config/voicebar/config.toml`. Allow it under Privacy & Security › Accessibility (needed to paste) and Microphone. macOS ties these grants to the code signature, so `build.sh` signs with a local self-signed certificate named "VoiceBar Local Signing" when one is in the login keychain; without it the build is signed ad hoc and the grants are lost on every rebuild. To create the certificate once:
 
 ```bash
 cat > /tmp/vb.cnf <<'EOF'
@@ -127,8 +127,8 @@ brew install ffmpeg uv
 #### 2. Clone and set up the project
 
 ```bash
-git clone https://github.com/Richard-Sti/linux-voice
-cd linux-voice
+git clone https://github.com/Richard-Sti/voicebar
+cd voicebar
 uv sync --extra macos --extra groq   # drop --extra groq for OpenAI; add --extra claude for Claude corrections
 ```
 
@@ -137,8 +137,8 @@ uv sync --extra macos --extra groq   # drop --extra groq for OpenAI; add --extra
 Get a free Groq API key at [groq.com](https://groq.com) (or use an OpenAI key).
 
 ```bash
-mkdir -p ~/.config/linux-voice
-cat > ~/.config/linux-voice/config.toml << 'EOF'
+mkdir -p ~/.config/voicebar
+cat > ~/.config/voicebar/config.toml << 'EOF'
 [transcription]
 backend = "groq"
 api_key = "your-groq-api-key-here"
@@ -155,7 +155,7 @@ For OpenAI, omit the `backend` line and set your OpenAI key as `api_key`.
 #### 5. Test manually
 
 ```bash
-uv run python linux-voice.py
+uv run python voicebar.py
 ```
 
 Hold **Cmd+Shift+Space**, speak, release. Text should appear in the focused window. Press Ctrl+C to stop.
@@ -163,13 +163,13 @@ Hold **Cmd+Shift+Space**, speak, release. Text should appear in the focused wind
 #### 6. Set up auto-start (LaunchAgent)
 
 ```bash
-uv run python linux-voice.py --install-agent
+uv run python voicebar.py --install-agent
 ```
 
 This auto-generates the LaunchAgent plist with the correct paths and API key. Then start it:
 
 ```bash
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.linux-voice.agent.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.voicebar.agent.plist
 ```
 
 Voice dictation now works globally in any app via **Cmd+Shift+Space** and starts automatically on login.
@@ -178,13 +178,13 @@ Voice dictation now works globally in any app via **Cmd+Shift+Space** and starts
 
 ```bash
 # View logs
-tail -f ~/Library/Logs/linux-voice.log
+tail -f ~/Library/Logs/voicebar.log
 
 # Restart after code changes
-launchctl kickstart -k gui/$(id -u)/com.linux-voice.agent
+launchctl kickstart -k gui/$(id -u)/com.voicebar.agent
 
 # Uninstall (stop + remove)
-uv run python linux-voice.py --uninstall-agent
+uv run python voicebar.py --uninstall-agent
 ```
 
 #### Default hotkeys on macOS
@@ -213,23 +213,23 @@ OPENAI_API_KEY=your-key-here
 ### Manual
 
 ```bash
-linux-voice
+voicebar
 ```
 
 If using a virtual environment:
 ```bash
-~/.local/share/linux-voice/bin/python ~/.local/bin/linux-voice
+~/.local/share/voicebar/bin/python ~/.local/bin/voicebar
 ```
 
 ### Systemd Service (Auto-start)
 
-Create `~/.config/systemd/user/linux-voice.service`:
+Create `~/.config/systemd/user/voicebar.service`:
 ```ini
 [Unit]
 Description=Linux Voice Dictation
 
 [Service]
-ExecStart=%h/.local/bin/linux-voice
+ExecStart=%h/.local/bin/voicebar
 Restart=on-failure
 
 [Install]
@@ -238,19 +238,19 @@ WantedBy=default.target
 
 If using a virtual environment, update `ExecStart`:
 ```ini
-ExecStart=%h/.local/share/linux-voice/bin/python %h/.local/bin/linux-voice
+ExecStart=%h/.local/share/voicebar/bin/python %h/.local/bin/voicebar
 ```
 
 Then enable:
 ```bash
 systemctl --user daemon-reload
-systemctl --user enable --now linux-voice
+systemctl --user enable --now voicebar
 
 # Check status
-systemctl --user status linux-voice
+systemctl --user status voicebar
 
 # View logs
-journalctl --user -u linux-voice -f
+journalctl --user -u voicebar -f
 ```
 
 ### Modes
@@ -259,14 +259,14 @@ journalctl --user -u linux-voice -f
 - **Toggle mode**: Press Ctrl+Space to start recording, press again to stop
 
 ```bash
-LINUX_VOICE_MODE=toggle linux-voice
+VOICEBAR_MODE=toggle voicebar
 ```
 
 ### Submit Hotkey
 
 Use Ctrl+Shift+Space (default) to record and automatically press Enter after typing. Useful for command-line input, chat applications, or any context where you want to submit immediately.
 
-Configure an alternative (e.g., Alt+Space) in `~/.config/linux-voice/config.toml`:
+Configure an alternative (e.g., Alt+Space) in `~/.config/voicebar/config.toml`:
 ```toml
 [hotkey_submit]
 key = "space"
@@ -286,7 +286,7 @@ The edit uses the backend's chat model (gpt-4o-mini for OpenAI, llama-3.3-70b-ve
 
 With an Anthropic API key in `[edit]`, Claude applies the correction instead (install with `--extra claude`).
 
-Configure in `~/.config/linux-voice/config.toml`:
+Configure in `~/.config/voicebar/config.toml`:
 ```toml
 [hotkey_edit]
 key = "space"
@@ -304,7 +304,7 @@ modifiers = ["ctrl", "alt"]
 
 Use Cmd+Shift+K (macOS) or Ctrl+Shift+K (Linux) to delete the last transcription. This sends backspace keypresses to remove exactly the text that was previously typed.
 
-Configure in `~/.config/linux-voice/config.toml`:
+Configure in `~/.config/voicebar/config.toml`:
 ```toml
 [hotkey_delete]
 key = "k"
@@ -323,7 +323,7 @@ If the internet connection fails during transcription, the audio is saved and yo
 (no internet - say 'recover' to retry)
 ```
 
-When internet is restored, hold Ctrl+Space and say "recover" to transcribe the saved audio. The recovery file is stored at `/tmp/linux-voice-recovery.wav` and deleted after successful recovery.
+When internet is restored, hold Ctrl+Space and say "recover" to transcribe the saved audio. The recovery file is stored at `/tmp/voicebar-recovery.wav` and deleted after successful recovery.
 
 ### Voice Commands
 
@@ -333,7 +333,7 @@ When internet is restored, hold Ctrl+Space and say "recover" to transcribe the s
 
 ## Configuration
 
-Create `~/.config/linux-voice/config.toml` to customize:
+Create `~/.config/voicebar/config.toml` to customize:
 
 ```toml
 [hotkey]
@@ -430,7 +430,7 @@ Then reboot.
 Ctrl+Space (`C-@`) has a default behavior in vim insert mode (insert previously inserted text). Disable it by adding to your `.vimrc`:
 
 ```vim
-" Disable Ctrl+Space insert mode behavior (for linux-voice)
+" Disable Ctrl+Space insert mode behavior (for voicebar)
 inoremap <C-@> <Nop>
 ```
 
@@ -450,7 +450,7 @@ Then log out and back in.
 
 - **Accessibility permissions:** Ensure your terminal app is listed in System Settings > Privacy & Security > Accessibility. Remove and re-add it if permissions were reset after a macOS update.
 - **Secure Input Mode:** When a password field is focused or `sudo` is running in terminal, macOS enables Secure Input which blocks global hotkey monitoring. Switch to a different window/app.
-- **Spotlight conflict:** The default `Cmd+Space` is taken by Spotlight. linux-voice defaults to `Cmd+Shift+Space` on macOS to avoid this.
+- **Spotlight conflict:** The default `Cmd+Space` is taken by Spotlight. voicebar defaults to `Cmd+Shift+Space` on macOS to avoid this.
 
 ### macOS: Text not appearing
 
