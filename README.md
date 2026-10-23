@@ -1,101 +1,29 @@
 # VoiceBar
 
-Voice-to-text dictation for Linux (X11) and macOS (VoiceBar menu-bar app) using Whisper.
+Menu-bar dictation for macOS using Whisper (Groq or OpenAI). Press a shortcut, speak, and the text is pasted into the focused window.
 
 Originally a fork of [williamjameshandley/linux-voice](https://github.com/williamjameshandley/linux-voice) by Will Handley; now developed independently.
 
-Hold Ctrl+Space to record speech, release to transcribe and type into the focused window.
+## Install
 
-## Requirements
-
-- Python 3.11+
-- Linux with X11 (Wayland has limited support)
-- PulseAudio/PipeWire
-- Working microphone
-- OpenAI API key
-
-## Installation
-
-### Ubuntu/Debian
-
-```bash
-# System dependencies
-sudo apt install xdotool ffmpeg python3-pip python3-venv
-
-# Create virtual environment (recommended)
-python3 -m venv ~/.local/share/voicebar
-source ~/.local/share/voicebar/bin/activate
-
-# Install Python packages
-pip install pynput sounddevice numpy openai
-
-# Download and install script
-curl -o ~/.local/bin/voicebar https://raw.githubusercontent.com/Richard-Sti/voicebar/main/voicebar.py
-chmod +x ~/.local/bin/voicebar
-```
-
-### Fedora
-
-```bash
-# System dependencies
-sudo dnf install xdotool ffmpeg python3-pip
-
-# Create virtual environment (recommended)
-python3 -m venv ~/.local/share/voicebar
-source ~/.local/share/voicebar/bin/activate
-
-# Install Python packages
-pip install pynput sounddevice numpy openai
-
-# Download and install script
-curl -o ~/.local/bin/voicebar https://raw.githubusercontent.com/Richard-Sti/voicebar/main/voicebar.py
-chmod +x ~/.local/bin/voicebar
-```
-
-### Arch Linux
-
-```bash
-# System dependencies
-sudo pacman -S xdotool ffmpeg python-numpy python-pynput python-sounddevice python-openai
-
-# Download and install script
-curl -o ~/.local/bin/voicebar https://raw.githubusercontent.com/Richard-Sti/voicebar/main/voicebar.py
-chmod +x ~/.local/bin/voicebar
-```
-
-Or build the package:
+Needs only the Xcode Command Line Tools (`xcode-select --install`).
 
 ```bash
 git clone https://github.com/Richard-Sti/voicebar
 cd voicebar
-makepkg -si
-```
-
-### pip (Any Distribution)
-
-```bash
-# Ensure system dependencies are installed first:
-# - xdotool (for typing text)
-# - ffmpeg (for audio compression, optional but recommended)
-
-pip install pynput sounddevice numpy openai
-
-# Download script
-curl -o ~/.local/bin/voicebar https://raw.githubusercontent.com/Richard-Sti/voicebar/main/voicebar.py
-chmod +x ~/.local/bin/voicebar
-```
-
-### macOS menu-bar app (VoiceBar)
-
-`macos/` holds a native Swift version for macOS: a menu-bar microphone icon, shortcuts set in a Settings window (click a field and press the keys), API keys in the Keychain, and Launch at login. It uses the system hotkey API, so held shortcuts never leak characters, and it needs only the Xcode Command Line Tools:
-
-```bash
-macos/build.sh          # builds and installs ~/Applications/VoiceBar.app
+macos/build.sh                 # builds and installs ~/Applications/VoiceBar.app
 open ~/Applications/VoiceBar.app
-macos/check.sh          # offline self-check; --mic tests recording, --network the API key
 ```
 
-On first launch it imports the hotkeys, backend, language, prompt and API key from `~/.config/voicebar/config.toml`. Allow it under Privacy & Security › Accessibility (needed to paste) and Microphone. macOS ties these grants to the code signature, so `build.sh` signs with a local self-signed certificate named "VoiceBar Local Signing" when one is in the login keychain; without it the build is signed ad hoc and the grants are lost on every rebuild. To create the certificate once:
+Then:
+
+1. Open **Settings** from the menu-bar microphone and enter a Whisper API key: Groq ([free key](https://console.groq.com)) or OpenAI.
+2. Allow VoiceBar under System Settings › Privacy & Security › **Accessibility** (needed to paste) and **Microphone**.
+3. Optionally turn on **Launch at login**.
+
+### Keeping permissions across rebuilds
+
+macOS ties the Accessibility and Microphone grants to the code signature. `build.sh` signs with a self-signed certificate named "VoiceBar Local Signing" if one is in your login keychain; otherwise it signs ad hoc and the grants are lost on every rebuild. Create the certificate once:
 
 ```bash
 cat > /tmp/vb.cnf <<'EOF'
@@ -114,348 +42,45 @@ EOF
 /usr/bin/openssl pkcs12 -export -inkey /tmp/vb.key -in /tmp/vb.pem -out /tmp/vb.p12 -passout pass:vb -name "VoiceBar Local Signing"
 security import /tmp/vb.p12 -k ~/Library/Keychains/login.keychain-db -P vb -T /usr/bin/codesign
 rm /tmp/vb.key /tmp/vb.p12
-``` Do not run it alongside the Python agent below, or both will react to the same shortcuts.
-
-### macOS (from scratch)
-
-#### 1. Install system dependencies
-
-```bash
-brew install ffmpeg uv
-```
-
-#### 2. Clone and set up the project
-
-```bash
-git clone https://github.com/Richard-Sti/voicebar
-cd voicebar
-uv sync --extra macos --extra groq   # drop --extra groq for OpenAI; add --extra claude for Claude corrections
-```
-
-#### 3. Configure
-
-Get a free Groq API key at [groq.com](https://groq.com) (or use an OpenAI key).
-
-```bash
-mkdir -p ~/.config/voicebar
-cat > ~/.config/voicebar/config.toml << 'EOF'
-[transcription]
-backend = "groq"
-api_key = "your-groq-api-key-here"
-EOF
-```
-
-For OpenAI, omit the `backend` line and set your OpenAI key as `api_key`.
-
-#### 4. Grant permissions
-
-- **Accessibility:** System Settings > Privacy & Security > Accessibility — add `/bin/zsh` (click `+`, press Cmd+Shift+G, type `/bin/zsh`)
-- **Microphone:** Will be prompted on first run
-
-#### 5. Test manually
-
-```bash
-uv run python voicebar.py
-```
-
-Hold **Cmd+Shift+Space**, speak, release. Text should appear in the focused window. Press Ctrl+C to stop.
-
-#### 6. Set up auto-start (LaunchAgent)
-
-```bash
-uv run python voicebar.py --install-agent
-```
-
-This auto-generates the LaunchAgent plist with the correct paths and API key. Then start it:
-
-```bash
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.voicebar.agent.plist
-```
-
-Voice dictation now works globally in any app via **Cmd+Shift+Space** and starts automatically on login.
-
-#### Managing the service
-
-```bash
-# View logs
-tail -f ~/Library/Logs/voicebar.log
-
-# Restart after code changes
-launchctl kickstart -k gui/$(id -u)/com.voicebar.agent
-
-# Uninstall (stop + remove)
-uv run python voicebar.py --uninstall-agent
-```
-
-#### Default hotkeys on macOS
-
-| Hotkey | Action |
-|--------|--------|
-| `Cmd+Shift+Space` | Hold to record, release to transcribe |
-| `Cmd+Shift+Ctrl+Space` | Record and auto-press Enter |
-| `Cmd+Alt+Space` | Record correction instruction |
-| `Cmd+Shift+K` | Delete last transcription |
-
-### API Key Setup (Linux)
-
-Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
-```bash
-export OPENAI_API_KEY="your-key-here"
-```
-
-For the systemd service, create `~/.config/environment.d/openai.conf`:
-```
-OPENAI_API_KEY=your-key-here
 ```
 
 ## Usage
 
-### Manual
+All shortcuts are set in Settings (click a field and press the keys). Defaults:
 
-```bash
-voicebar
-```
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+Shift+Space` | Dictate |
+| `Cmd+Shift+Ctrl+Space` | Dictate, then press Return |
+| `Cmd+Alt+Space` | Speak a correction to the last dictation ("change cash to cache") |
+| `Cmd+Shift+K` | Delete the last dictation |
+| `Esc` | Stop a recording |
 
-If using a virtual environment:
-```bash
-~/.local/share/voicebar/bin/python ~/.local/bin/voicebar
-```
+By default a shortcut starts recording and pressing it again stops; Settings can switch to hold-to-talk.
 
-### Systemd Service (Auto-start)
+- **Corrections** use Claude if an Anthropic API key is set in Settings, otherwise the transcription provider's chat model.
+- **Vocabulary hint** (Settings) helps Whisper with names, jargon and British spelling.
+- **Keep microphone ready** keeps the mic open between recordings so the first word is never clipped.
+- **Offline recovery:** if a transcription fails for lack of network, the audio is kept and the menu offers to retry it.
 
-Create `~/.config/systemd/user/voicebar.service`:
-```ini
-[Unit]
-Description=Linux Voice Dictation
-
-[Service]
-ExecStart=%h/.local/bin/voicebar
-Restart=on-failure
-
-[Install]
-WantedBy=default.target
-```
-
-If using a virtual environment, update `ExecStart`:
-```ini
-ExecStart=%h/.local/share/voicebar/bin/python %h/.local/bin/voicebar
-```
-
-Then enable:
-```bash
-systemctl --user daemon-reload
-systemctl --user enable --now voicebar
-
-# Check status
-systemctl --user status voicebar
-
-# View logs
-journalctl --user -u voicebar -f
-```
-
-### Modes
-
-- **Hold mode** (default): Hold Ctrl+Space while speaking, release to transcribe
-- **Toggle mode**: Press Ctrl+Space to start recording, press again to stop
-
-```bash
-VOICEBAR_MODE=toggle voicebar
-```
-
-### Submit Hotkey
-
-Use Ctrl+Shift+Space (default) to record and automatically press Enter after typing. Useful for command-line input, chat applications, or any context where you want to submit immediately.
-
-Configure an alternative (e.g., Alt+Space) in `~/.config/voicebar/config.toml`:
-```toml
-[hotkey_submit]
-key = "space"
-modifiers = ["alt"]
-delay = 150  # ms delay before Enter (increase if unreliable)
-```
-
-### Edit Hotkey
-
-Use Ctrl+Alt+Space (default) to correct the previous transcription using an LLM. This is useful when Whisper misinterprets a word:
-
-1. Dictate normally with Ctrl+Space → "The function uses a cash mechanism"
-2. Hold Ctrl+Alt+Space and say "change cash to cache"
-3. The original text is cleared and replaced with "The function uses a cache mechanism"
-
-The edit uses the backend's chat model (gpt-4o-mini for OpenAI, llama-3.3-70b-versatile for Groq). The LLM is aware of Unix/programming context and common voice recognition errors (cash→cache, bite→byte, get→git, etc.).
-
-With an Anthropic API key in `[edit]`, Claude applies the correction instead (install with `--extra claude`).
-
-Configure in `~/.config/voicebar/config.toml`:
-```toml
-[hotkey_edit]
-key = "space"
-modifiers = ["ctrl", "alt"]
-
-[transcription]
-# llm_model = "gpt-4o-mini"  # Override LLM model for corrections
-
-[edit]
-# anthropic_api_key = "sk-ant-..."  # use Claude for corrections
-# model = "claude-opus-5-5"
-```
-
-### Delete Hotkey
-
-Use Cmd+Shift+K (macOS) or Ctrl+Shift+K (Linux) to delete the last transcription. This sends backspace keypresses to remove exactly the text that was previously typed.
-
-Configure in `~/.config/voicebar/config.toml`:
-```toml
-[hotkey_delete]
-key = "k"
-modifiers = ["cmd", "shift"]  # Cmd+Shift+K on macOS
-```
-
-### Auto-spacing
-
-When dictating multiple utterances in a row, a space is automatically prepended between them. The spacing resets when you delete the last transcription or submit with Enter.
-
-### Offline Recovery
-
-If the internet connection fails during transcription, the audio is saved and you'll see:
-
-```
-(no internet - say 'recover' to retry)
-```
-
-When internet is restored, hold Ctrl+Space and say "recover" to transcribe the saved audio. The recovery file is stored at `/tmp/voicebar-recovery.wav` and deleted after successful recovery.
-
-### Voice Commands
-
-| Command | Action |
-|---------|--------|
-| "recover" | Transcribe saved audio from a failed attempt |
-
-## Configuration
-
-Create `~/.config/voicebar/config.toml` to customize:
-
-```toml
-[hotkey]
-key = "space"
-modifiers = ["ctrl"]
-mode = "hold"  # or "toggle"
-
-[hotkey_submit]
-key = "space"
-modifiers = ["ctrl", "shift"]  # Ctrl+Shift+Space by default
-delay = 150                     # ms delay before Enter key
-
-[hotkey_edit]
-key = "space"
-modifiers = ["ctrl", "alt"]    # Ctrl+Alt+Space by default
-
-[hotkey_delete]
-key = "k"
-modifiers = ["cmd", "shift"]   # Cmd+Shift+K by default (macOS)
-
-[audio]
-sample_rate = 16000      # Whisper native rate (don't change unless needed)
-input_device = "MacBook Pro Microphone"  # name or index of input device
-silence_threshold = 150  # RMS threshold for silence detection
-
-[transcription]
-backend = "openai"  # or "groq"
-language = "en"
-# model = "whisper-1"  # or "whisper-large-v3-turbo" for groq
-# llm_model = "gpt-4o-mini"  # or "llama-3.3-70b-versatile" for groq (edit mode)
-# prompt = "Domain-specific vocabulary. Technical terms, jargon, names."
-```
-
-### Backend Options
-
-| Backend | Model | Cost | Latency |
-|---------|-------|------|---------|
-| `openai` | whisper-1 | $0.006/min | ~1-2s |
-| `groq` | whisper-large-v3-turbo | $0.04/hr | ~200ms |
-
-For Groq, set `GROQ_API_KEY` instead of `OPENAI_API_KEY`.
-
-The `prompt` helps Whisper with:
-- British vs American spelling (colour, favour, organisation)
-- Domain-specific vocabulary (your field's jargon)
-- Consistent formatting and punctuation
-
-### Text Replacements
-
-Define regex replacements to convert spoken phrases into special characters or commands:
-
-```toml
-[replacements]
-"^[Ss]lash " = "/"              # "slash compact" → "/compact"
-"^[Ff]orward [Ss]lash " = "/"
-"^(/.*)\\.\\s*$" = "\\1"        # strip period only from /commands
-```
-
-This allows saying "slash compact" to type `/compact` for Claude Code commands.
-
-## Privacy and Security
-
-**Audio is sent to OpenAI:** All recorded speech is transmitted to OpenAI's Whisper API for transcription. See [OpenAI's data usage policies](https://openai.com/policies/api-data-usage-policies).
-
-**Text is typed into the focused window:** Be careful not to dictate sensitive information while password fields or sensitive applications are focused.
-
-## Cost
-
-OpenAI Whisper API costs $0.006 per minute of audio. A typical 10-second dictation costs ~$0.001.
+API keys live in the Keychain; other settings in the app's preferences.
 
 ## Troubleshooting
 
-### Microphone not working
+- **Shortcut does nothing:** check Accessibility permission; remove and re-add VoiceBar after a macOS update or an ad-hoc rebuild. Secure Input (a focused password field, `sudo` in a terminal) blocks global shortcuts.
+- **Text not appearing:** text is pasted with `Cmd+V`, so apps that block paste will not receive it.
 
-**Ubuntu/Debian:**
+## Development
+
 ```bash
-sudo apt install linux-firmware
+macos/check.sh             # offline self-check
+macos/check.sh --mic       # also test recording
+macos/check.sh --network   # also test the API key
 ```
 
-**Fedora:**
-```bash
-sudo dnf install linux-firmware
-```
+## Python script (legacy)
 
-**Arch Linux** (modern AMD laptops - Ryzen 6000+, Strix Point):
-```bash
-sudo pacman -S sof-firmware
-```
-
-Then reboot.
-
-### Vim
-
-Ctrl+Space (`C-@`) has a default behavior in vim insert mode (insert previously inserted text). Disable it by adding to your `.vimrc`:
-
-```vim
-" Disable Ctrl+Space insert mode behavior (for voicebar)
-inoremap <C-@> <Nop>
-```
-
-### Wayland
-
-xdotool has limited Wayland support. Consider using X11 or switching to ydotool.
-
-### Permission errors with pynput
-
-On some systems, you may need to run as root or add your user to the `input` group:
-```bash
-sudo usermod -aG input $USER
-```
-Then log out and back in.
-
-### macOS: Hotkeys not working
-
-- **Accessibility permissions:** Ensure your terminal app is listed in System Settings > Privacy & Security > Accessibility. Remove and re-add it if permissions were reset after a macOS update.
-- **Secure Input Mode:** When a password field is focused or `sudo` is running in terminal, macOS enables Secure Input which blocks global hotkey monitoring. Switch to a different window/app.
-- **Spotlight conflict:** The default `Cmd+Space` is taken by Spotlight. voicebar defaults to `Cmd+Shift+Space` on macOS to avoid this.
-
-### macOS: Text not appearing
-
-- Text is injected via clipboard paste (`Cmd+V`). If the target app blocks paste, text injection will fail.
-- Some terminal apps (iTerm2) may prompt before pasting multi-line text.
+`voicebar.py` is the original cross-platform script (Linux X11 and macOS) that VoiceBar grew out of. It is configured through `~/.config/voicebar/config.toml`, which VoiceBar also imports once on first launch. Run it with `uv run python voicebar.py`; do not run it alongside the app, or both will react to the same shortcuts.
 
 ## License
 
