@@ -69,6 +69,9 @@ final class Settings: ObservableObject {
     private init() {
         Settings.importPythonConfigOnce()
         let d = UserDefaults.standard
+        // ponytail: leftovers of the removed correct/delete shortcuts; drop this once every install has run it.
+        Keychain.set("anthropic", "")
+        ["hotkey.edit", "hotkey.delete", "claudeModel"].forEach { d.removeObject(forKey: $0) }
         // Added after the config import, so existing installs get the default once.
         if !d.bool(forKey: "seededBracketHotkey") {
             d.set(Hotkey(key: "j", modifiers: ["cmd", "shift"])!.plist, forKey: "hotkey.\(Action.bracket)")
@@ -87,12 +90,6 @@ final class Settings: ObservableObject {
         wrapTemplate = d.string(forKey: "wrapTemplate") ?? "[...]"
         transcriptionKey = Keychain.get("transcription")
         launchAtLogin = SMAppService.mainApp.status == .enabled
-    }
-
-    /// `text` in place of the template's "...", or after the template if it has none.
-    func wrap(_ text: String) -> String {
-        guard let r = wrapTemplate.range(of: "...") else { return wrapTemplate + text }
-        return wrapTemplate.replacingCharacters(in: r, with: text)
     }
 
     private func saveHotkeys() {
@@ -197,7 +194,7 @@ struct SettingsView: View {
                 LabeledContent("Dictate") { ShortcutField(action: .record) }
                 LabeledContent("Dictate and press Return") { ShortcutField(action: .submit) }
                 LabeledContent("Dictate wrapped") { ShortcutField(action: .bracket) }
-                TextField("Wrap in", text: $settings.wrapTemplate, prompt: Text("\\rs{...}"))
+                TextField("Wrap in", text: $settings.wrapTemplate, prompt: Text("empty: no wrapping"))
                 Picker("Recording", selection: $settings.holdToTalk) {
                     Text("Press to start, press again to stop").tag(false)
                     Text("Hold the shortcut while speaking").tag(true)

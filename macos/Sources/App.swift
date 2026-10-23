@@ -7,7 +7,7 @@ import os
 let logger = Logger(subsystem: "com.rstiskalek.voicebar", category: "app")
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSTextFieldDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSTextFieldDelegate, NSWindowDelegate {
     private static let minSeconds = 0.3
     private static let maxSeconds = 300.0  // 9.6 MB of audio, under Groq's 25 MB free-tier limit
     private static let silencePeak = 500
@@ -163,12 +163,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         let text: String
         do {
             text = try await transcriber().transcribe(wav: wav)
-        } catch let error as URLError {
-            saveRecovery(wav)
-            fail("Network error (\(error.code.rawValue)): recording saved, use “Transcribe saved recording”")
-            return
         } catch {
-            fail("Transcription failed: \(error.localizedDescription)")
+            saveRecovery(wav, action: action)
+            let reason = (error as? URLError).map { "Network error (\($0.code.rawValue))" }
+                ?? "Transcription failed: \(error.localizedDescription)"
+            fail("\(reason); recording saved, use “Transcribe saved recording”")
             return
         }
         guard !isLikelyHallucination(text) else {
@@ -184,7 +183,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         }
 
         let pid = target?.processIdentifier
-        let body = action == .bracket ? settings.wrap(text) : text
+        let body = action == .bracket ? wrap(text, in: settings.wrapTemplate) : text
         let insert = (continuingIn != nil && continuingIn == pid) ? " " + body : body
         await Typer.paste(insert)
         continuingIn = pid
@@ -208,19 +207,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
                     language: settings.language, prompt: settings.vocabulary)
     }
 
-    private func saveRecovery(_ wav: Data) {
+    private func saveRecovery(_ wav: Data, action: Action) {
         try? FileManager.default.createDirectory(at: recoveryURL.deletingLastPathComponent(),
                                                  withIntermediateDirectories: true)
         try? wav.write(to: recoveryURL)
+        UserDefaults.standard.set(action.rawValue, forKey: "recoveryAction")
     }
 
     @objc private func transcribeSaved() {
         guard state == .idle, let wav = try? Data(contentsOf: recoveryURL), wav.count > 44 else { return }
         try? FileManager.default.removeItem(at: recoveryURL)
         let target = NSWorkspace.shared.frontmostApplication
+        let action = Action(rawValue: UserDefaults.standard.integer(forKey: "recoveryAction")) ?? .record
         state = .processing
         Task {
-            await process(Data(wav.dropFirst(44)), action: .record, target: target)
+            await process(Data(wav.dropFirst(44)), action: action, target: target)
             state = .idle
         }
     }
@@ -266,7 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         }
         // A text field in the menu, so the wrapper can be retyped without opening Settings.
         let field = NSTextField(string: settings.wrapTemplate)
-        field.placeholderString = "\\rs{...}"
+        field.placeholderString = "empty: no wrapping"
         field.delegate = self
         field.target = self
         field.action = #selector(closeMenu)
@@ -298,12 +299,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         NSPasteboard.general.setString(lastTranscript, forType: .string)
     }
 
+    // An unfinished shortcut recording would otherwise leave every shortcut off.
+    func windowWillClose(_ notification: Notification) { ShortcutRecorder.shared.stop() }
+    func applicationDidResignActive(_ notification: Notification) { ShortcutRecorder.shared.stop() }
+
     @objc private func openSettings() {
         if settingsWindow == nil {
             let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
             window.title = "VoiceBar Settings"
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false
+            window.delegate = self
             settingsWindow = window
         }
         NSApp.activate(ignoringOtherApps: true)

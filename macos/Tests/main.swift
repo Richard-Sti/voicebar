@@ -47,6 +47,13 @@ assert(isLikelyHallucination(""))
 assert(!isLikelyHallucination("Thank you for the referee report."))
 assert(!isLikelyHallucination("The UKIDSS deficit is shallower."))
 
+// The wrap template puts the dictation in place of its placeholder.
+assert(wrap("fix this", in: "\\rs{...}") == "\\rs{fix this}")
+assert(wrap("fix this", in: "\\rs{…}") == "\\rs{fix this}")
+assert(wrap("a", in: "[...] and ...") == "[a] and ...")
+assert(wrap("a", in: "> ") == "> a")
+assert(wrap("a", in: "") == "a")
+
 print("offline checks passed")
 
 // Records 1.5 s through the app's Recorder; a room is never digitally silent,

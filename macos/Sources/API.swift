@@ -29,6 +29,12 @@ func isLikelyHallucination(_ transcript: String) -> Bool {
     return normalised.isEmpty || whisperStockPhrases.contains(normalised)
 }
 
+/// `text` in place of the template's "..." (or "…"), or after the template if it has neither.
+func wrap(_ text: String, in template: String) -> String {
+    guard let r = template.range(of: "...") ?? template.range(of: "…") else { return template + text }
+    return template.replacingCharacters(in: r, with: text)
+}
+
 /// Whisper transcription through an OpenAI-compatible endpoint (Groq or OpenAI).
 struct Transcriber {
     let baseURL: URL
