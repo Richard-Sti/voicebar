@@ -34,8 +34,6 @@ MAX_RECORDING_SECONDS = 120
 # Load config from ~/.config/voicebar/config.toml if it exists
 CONFIG = {}
 CONFIG_PATH = Path.home() / ".config" / "voicebar" / "config.toml"
-if not CONFIG_PATH.exists():  # ponytail: pre-rename location, drop once nobody uses it
-    CONFIG_PATH = Path.home() / ".config" / "linux-voice" / "config.toml"
 if CONFIG_PATH.exists():
     try:
         import tomllib
