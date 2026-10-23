@@ -2,6 +2,8 @@
 
 Voice-to-text dictation tool for Linux (X11) using OpenAI Whisper.
 
+Originally a fork of [williamjameshandley/linux-voice](https://github.com/williamjameshandley/linux-voice) by Will Handley; now developed independently.
+
 Hold Ctrl+Space to record speech, release to transcribe and type into the focused window.
 
 ## Requirements
@@ -28,7 +30,7 @@ source ~/.local/share/linux-voice/bin/activate
 pip install pynput sounddevice numpy openai
 
 # Download and install script
-curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/williamjameshandley/linux-voice/main/linux-voice.py
+curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/Richard-Sti/linux-voice/main/linux-voice.py
 chmod +x ~/.local/bin/linux-voice
 ```
 
@@ -46,7 +48,7 @@ source ~/.local/share/linux-voice/bin/activate
 pip install pynput sounddevice numpy openai
 
 # Download and install script
-curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/williamjameshandley/linux-voice/main/linux-voice.py
+curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/Richard-Sti/linux-voice/main/linux-voice.py
 chmod +x ~/.local/bin/linux-voice
 ```
 
@@ -57,14 +59,14 @@ chmod +x ~/.local/bin/linux-voice
 sudo pacman -S xdotool ffmpeg python-numpy python-pynput python-sounddevice python-openai
 
 # Download and install script
-curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/williamjameshandley/linux-voice/main/linux-voice.py
+curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/Richard-Sti/linux-voice/main/linux-voice.py
 chmod +x ~/.local/bin/linux-voice
 ```
 
 Or build the package:
 
 ```bash
-git clone https://github.com/williamjameshandley/linux-voice
+git clone https://github.com/Richard-Sti/linux-voice
 cd linux-voice
 makepkg -si
 ```
@@ -79,7 +81,7 @@ makepkg -si
 pip install pynput sounddevice numpy openai
 
 # Download script
-curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/williamjameshandley/linux-voice/main/linux-voice.py
+curl -o ~/.local/bin/linux-voice https://raw.githubusercontent.com/Richard-Sti/linux-voice/main/linux-voice.py
 chmod +x ~/.local/bin/linux-voice
 ```
 
@@ -125,7 +127,7 @@ brew install ffmpeg uv
 #### 2. Clone and set up the project
 
 ```bash
-git clone https://github.com/williamjameshandley/linux-voice
+git clone https://github.com/Richard-Sti/linux-voice
 cd linux-voice
 uv sync --extra macos --extra groq   # drop --extra groq for OpenAI; add --extra claude for Claude corrections
 ```
