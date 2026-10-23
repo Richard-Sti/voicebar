@@ -1,9 +1,8 @@
 import Cocoa
 
-/// Inserts and deletes text in the focused app with synthetic key events.
+/// Inserts text in the focused app with synthetic key events.
 enum Typer {
     private static let vKey: CGKeyCode = 9
-    private static let deleteKey: CGKeyCode = 51
     static let returnKey: CGKeyCode = 36
     /// Tag on every key event VoiceBar posts, so its own typing is not taken
     /// for the user's.
@@ -64,12 +63,4 @@ enum Typer {
         }
     }
 
-    /// Deletes `count` user-perceived characters; one Backspace removes one
-    /// grapheme cluster, which is what Swift's `String.count` counts.
-    static func deleteBackward(_ count: Int) async {
-        for _ in 0..<count {
-            press(deleteKey)
-            try? await Task.sleep(for: .milliseconds(8))
-        }
-    }
 }

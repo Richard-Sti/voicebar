@@ -7,7 +7,7 @@ import os
 let logger = Logger(subsystem: "com.rstiskalek.voicebar", category: "app")
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSTextFieldDelegate {
     private static let minSeconds = 0.3
     private static let maxSeconds = 300.0  // 9.6 MB of audio, under Groq's 25 MB free-tier limit
     private static let silencePeak = 500
@@ -34,8 +34,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var activeAction = Action.record
     private var targetApp: NSRunningApplication?
 
-    /// Last inserted text, for the correct and delete shortcuts.
-    private var lastInserted = ""
     /// App that consecutive dictations went into; the next one gets a leading space.
     private var continuingIn: pid_t?
     private var lastTranscript = ""
@@ -59,10 +57,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         applyAudioSettings()
 
         // Once the user types or clicks, the cursor may no longer follow the last
-        // dictation, so correcting, deleting or auto-spacing could hit other text.
+        // dictation, so auto-spacing could hit other text.
         NSEvent.addGlobalMonitorForEvents(matching: [.keyDown, .leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard !Typer.isOurs(event) else { return }
-            MainActor.assumeIsolated { self?.forgetLastDictation() }
+            MainActor.assumeIsolated { self?.continuingIn = nil }
         }
 
         AVCaptureDevice.requestAccess(for: .audio) { _ in }
@@ -92,14 +90,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         recorder.setWarm(settings.keepMicReady)
     }
 
-    private func forgetLastDictation() {
-        lastInserted = ""
-        continuingIn = nil
-    }
-
     private func hotkeyDown(_ action: Action) {
         if action == .escape { stopRecording(); return }  // Escape stops like ⌘J
-        if action == .delete { deleteLast(); return }
         switch state {
         case .idle: startRecording(action)
         case .recording where !settings.holdToTalk: stopRecording()
@@ -115,7 +107,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Recording
 
     private func startRecording(_ action: Action) {
-        if action == .edit, lastInserted.isEmpty { fail("Nothing to correct yet"); return }
         do {
             try recorder.start()
         } catch {
@@ -192,52 +183,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             try? await Task.sleep(for: .milliseconds(150))
         }
 
-        if action == .edit {
-            await correctLast(with: text)
-            return
-        }
         let pid = target?.processIdentifier
-        let insert = (continuingIn != nil && continuingIn == pid) ? " " + text : text
+        let body = action == .bracket ? settings.wrap(text) : text
+        let insert = (continuingIn != nil && continuingIn == pid) ? " " + body : body
         await Typer.paste(insert)
-        lastInserted = insert
         continuingIn = pid
         if action == .submit {
             try? await Task.sleep(for: .milliseconds(150))
             Typer.press(Typer.returnKey)
-            lastInserted = ""  // sent; no longer editable in place
             continuingIn = nil
         }
         status = "Ready"
-    }
-
-    private func correctLast(with instruction: String) async {
-        let original = lastInserted
-        let lead = original.hasPrefix(" ") ? " " : ""
-        let editor = makeEditor()
-        status = "Correcting with \(editor.label)…"
-        do {
-            let corrected = lead + (try await editor.correct(String(original.dropFirst(lead.count)),
-                                                             instruction: instruction))
-            // The user typed or clicked while the model was answering.
-            guard lastInserted == original else { return }
-            await Typer.deleteBackward(original.count)
-            await Typer.paste(corrected)
-            lastInserted = corrected
-            status = "Ready"
-        } catch {
-            fail("Correction failed: \(error.localizedDescription)")
-        }
-    }
-
-    private func deleteLast() {
-        guard state == .idle, !lastInserted.isEmpty else { NSSound.beep(); return }
-        let text = lastInserted
-        lastInserted = ""
-        continuingIn = nil
-        Task {
-            await Typer.waitForModifierRelease()
-            await Typer.deleteBackward(text.count)
-        }
     }
 
     // MARK: - Services
@@ -250,14 +206,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Transcriber(baseURL: providerURL, apiKey: settings.transcriptionKey,
                     model: settings.provider == "openai" ? "whisper-1" : "whisper-large-v3-turbo",
                     language: settings.language, prompt: settings.vocabulary)
-    }
-
-    private func makeEditor() -> Editor {
-        let backend: Editor.Backend = settings.anthropicKey.isEmpty
-            ? .chat(baseURL: providerURL, apiKey: settings.transcriptionKey,
-                    model: settings.provider == "openai" ? "gpt-4o-mini" : "llama-3.3-70b-versatile")
-            : .anthropic(apiKey: settings.anthropicKey, model: settings.claudeModel, effort: "low")
-        return Editor(backend: backend, domainContext: settings.vocabulary)
     }
 
     private func saveRecovery(_ wav: Data) {
@@ -316,6 +264,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let short = lastTranscript.count > 40 ? lastTranscript.prefix(40) + "…" : Substring(lastTranscript)
             action("Copy “\(short)”", #selector(copyLast))
         }
+        // A text field in the menu, so the wrapper can be retyped without opening Settings.
+        let field = NSTextField(string: settings.wrapTemplate)
+        field.placeholderString = "\\rs{...}"
+        field.delegate = self
+        field.target = self
+        field.action = #selector(closeMenu)
+        let label = NSTextField(labelWithString: "Wrap in:")
+        let row = NSStackView(views: [label, field])
+        row.edgeInsets = NSEdgeInsets(top: 4, left: 14, bottom: 4, right: 14)
+        row.frame.size = NSSize(width: 260, height: 30)
+        let wrapItem = NSMenuItem()
+        wrapItem.view = row
+        menu.addItem(wrapItem)
         if FileManager.default.fileExists(atPath: recoveryURL.path) {
             action("Transcribe saved recording", #selector(transcribeSaved))
         }
@@ -325,6 +286,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                               keyEquivalent: "q")
         menu.addItem(quit)
     }
+
+    func controlTextDidChange(_ note: Notification) {
+        if let field = note.object as? NSTextField { settings.wrapTemplate = field.stringValue }
+    }
+
+    @objc private func closeMenu() { statusItem.menu?.cancelTracking() }
 
     @objc private func copyLast() {
         NSPasteboard.general.clearContents()

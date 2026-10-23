@@ -2,7 +2,9 @@ import Carbon
 import Cocoa
 
 enum Action: Int, CaseIterable {
-    case record, submit, edit, delete
+    case record, submit
+    /// Dictates like `.record`, wrapping the text in the user's template.
+    case bracket
     /// Escape, bound only while recording: stops it like the dictation shortcut.
     case escape
 }

@@ -52,9 +52,9 @@ final class Settings: ObservableObject {
     @Published var provider: String { didSet { defaults.set(provider, forKey: "provider") } }
     @Published var language: String { didSet { defaults.set(language, forKey: "language") } }
     @Published var vocabulary: String { didSet { defaults.set(vocabulary, forKey: "vocabulary") } }
-    @Published var claudeModel: String { didSet { defaults.set(claudeModel, forKey: "claudeModel") } }
+    /// Wrapper for the bracket shortcut; "..." marks where the dictation goes.
+    @Published var wrapTemplate: String { didSet { defaults.set(wrapTemplate, forKey: "wrapTemplate") } }
     @Published var transcriptionKey: String { didSet { Keychain.set("transcription", transcriptionKey) } }
-    @Published var anthropicKey: String { didSet { Keychain.set("anthropic", anthropicKey) } }
     @Published var launchAtLogin: Bool {
         didSet {
             do {
@@ -69,6 +69,11 @@ final class Settings: ObservableObject {
     private init() {
         Settings.importPythonConfigOnce()
         let d = UserDefaults.standard
+        // Added after the config import, so existing installs get the default once.
+        if !d.bool(forKey: "seededBracketHotkey") {
+            d.set(Hotkey(key: "j", modifiers: ["cmd", "shift"])!.plist, forKey: "hotkey.\(Action.bracket)")
+            d.set(true, forKey: "seededBracketHotkey")
+        }
         var keys: [Action: Hotkey] = [:]
         for action in Action.allCases {
             keys[action] = Hotkey(plist: d.object(forKey: "hotkey.\(action)"))
@@ -79,10 +84,15 @@ final class Settings: ObservableObject {
         provider = d.string(forKey: "provider") ?? "groq"
         language = d.string(forKey: "language") ?? "en"
         vocabulary = d.string(forKey: "vocabulary") ?? ""
-        claudeModel = d.string(forKey: "claudeModel") ?? "claude-opus-5-5"
+        wrapTemplate = d.string(forKey: "wrapTemplate") ?? "[...]"
         transcriptionKey = Keychain.get("transcription")
-        anthropicKey = Keychain.get("anthropic")
         launchAtLogin = SMAppService.mainApp.status == .enabled
+    }
+
+    /// `text` in place of the template's "...", or after the template if it has none.
+    func wrap(_ text: String) -> String {
+        guard let r = wrapTemplate.range(of: "...") else { return wrapTemplate + text }
+        return wrapTemplate.replacingCharacters(in: r, with: text)
     }
 
     private func saveHotkeys() {
@@ -105,8 +115,6 @@ final class Settings: ObservableObject {
         let seeded: [Action: Hotkey?] = [
             .record: hotkey("hotkey", key: "space", mods: ["cmd", "shift"]),
             .submit: hotkey("hotkey_submit", key: "space", mods: ["cmd", "shift", "ctrl"]),
-            .edit: hotkey("hotkey_edit", key: "space", mods: ["cmd", "alt"]),
-            .delete: hotkey("hotkey_delete", key: "k", mods: ["cmd", "shift"]),
         ]
         for (action, hk) in seeded {
             if let hk { d.set(hk.plist, forKey: "hotkey.\(action)") }
@@ -188,8 +196,8 @@ struct SettingsView: View {
             Section("Shortcuts") {
                 LabeledContent("Dictate") { ShortcutField(action: .record) }
                 LabeledContent("Dictate and press Return") { ShortcutField(action: .submit) }
-                LabeledContent("Correct last dictation") { ShortcutField(action: .edit) }
-                LabeledContent("Delete last dictation") { ShortcutField(action: .delete) }
+                LabeledContent("Dictate wrapped") { ShortcutField(action: .bracket) }
+                TextField("Wrap in", text: $settings.wrapTemplate, prompt: Text("\\rs{...}"))
                 Picker("Recording", selection: $settings.holdToTalk) {
                     Text("Press to start, press again to stop").tag(false)
                     Text("Hold the shortcut while speaking").tag(true)
@@ -213,15 +221,6 @@ struct SettingsView: View {
                 TextField("Vocabulary hint", text: $settings.vocabulary,
                           prompt: Text("e.g. UKIDSS, 2M++, Schechter, Petrosian"), axis: .vertical)
                     .lineLimit(2...4)
-            }
-            Section {
-                SecureField("Anthropic API key", text: $settings.anthropicKey)
-                TextField("Claude model", text: $settings.claudeModel)
-            } header: {
-                Text("Corrections")
-            } footer: {
-                Text("With an Anthropic API key, Claude applies spoken corrections. Without one, the transcription provider's chat model does.")
-                    .foregroundStyle(.secondary)
             }
             Section {
                 Toggle("Launch at login", isOn: $settings.launchAtLogin)

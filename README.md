@@ -52,13 +52,11 @@ All shortcuts are set in Settings (click a field and press the keys). Defaults:
 |----------|--------|
 | `Cmd+Shift+Space` | Dictate |
 | `Cmd+Shift+Ctrl+Space` | Dictate, then press Return |
-| `Cmd+Alt+Space` | Speak a correction to the last dictation ("change cash to cache") |
-| `Cmd+Shift+K` | Delete the last dictation |
+| `Cmd+Shift+J` | Dictate, wrapped in a template such as `\rs{...}` (`...` is the dictation; type it in the menu bar or Settings) |
 | `Esc` | Stop a recording |
 
 By default a shortcut starts recording and pressing it again stops; Settings can switch to hold-to-talk.
 
-- **Corrections** use Claude if an Anthropic API key is set in Settings, otherwise the transcription provider's chat model.
 - **Vocabulary hint** (Settings) helps Whisper with names, jargon and British spelling.
 - **Keep microphone ready** keeps the mic open between recordings so the first word is never clipped.
 - **Offline recovery:** if a transcription fails for lack of network, the audio is kept and the menu offers to retry it.
