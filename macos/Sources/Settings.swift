@@ -190,6 +190,16 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("Spoken language") {
+                Picker("Language", selection: $settings.language) {
+                    Text("English").tag("en")
+                    Text("Czech").tag("cs")
+                    Text("Automatic").tag("")
+                    if !["en", "cs", ""].contains(settings.language) {
+                        Text(settings.language).tag(settings.language)
+                    }
+                }
+            }
             Section("Shortcuts") {
                 LabeledContent("Dictate") { ShortcutField(action: .record) }
                 LabeledContent("Dictate and press Return") { ShortcutField(action: .submit) }
@@ -214,7 +224,6 @@ struct SettingsView: View {
                     Text("OpenAI").tag("openai")
                 }
                 SecureField("API key", text: $settings.transcriptionKey)
-                TextField("Language", text: $settings.language, prompt: Text("en"))
                 TextField("Vocabulary hint", text: $settings.vocabulary,
                           prompt: Text("e.g. UKIDSS, 2M++, Schechter, Petrosian"), axis: .vertical)
                     .lineLimit(2...4)

@@ -91,7 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
     }
 
     private func hotkeyDown(_ action: Action) {
-        if action == .escape { stopRecording(); return }  // Escape stops like ⌘J
+        if action == .escape { stopRecording(discard: true); return }
         switch state {
         case .idle: startRecording(action)
         case .recording where !settings.holdToTalk: stopRecording()
@@ -127,9 +127,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         }
     }
 
-    private func stopRecording() {
+    private func stopRecording(discard: Bool = false) {
         guard state == .recording else { return }
         let pcm = recorder.stop()
+        if discard {
+            status = "Recording discarded"
+            state = .idle
+            return
+        }
         let seconds = Double(pcm.count) / Double(2 * Recorder.sampleRate)
         logger.notice("recorded \(seconds, format: .fixed(precision: 2), privacy: .public) s (\(String(describing: self.activeAction), privacy: .public)), peak \(peakLevel(pcm), privacy: .public)")
         guard seconds >= Self.minSeconds else {
@@ -258,6 +263,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         }
 
         info(status)
+        for (code, name) in [("en", "English"), ("cs", "Czech")] {
+            let item = NSMenuItem(title: "Language: \(name)", action: #selector(selectLanguage(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = code
+            item.state = settings.language == code ? .on : .off
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
         if let hotkey = settings.hotkeys[.record] {
             info("\(settings.holdToTalk ? "Hold" : "Press") \(hotkey.label) to dictate")
         }
@@ -290,6 +303,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
 
     func controlTextDidChange(_ note: Notification) {
         if let field = note.object as? NSTextField { settings.wrapTemplate = field.stringValue }
+    }
+
+    @objc private func selectLanguage(_ item: NSMenuItem) {
+        guard let code = item.representedObject as? String else { return }
+        settings.language = code
     }
 
     @objc private func closeMenu() { statusItem.menu?.cancelTracking() }

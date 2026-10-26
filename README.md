@@ -53,11 +53,12 @@ All shortcuts are set in Settings (click a field and press the keys). Defaults:
 | `Cmd+Shift+Space` | Dictate |
 | `Cmd+Shift+Ctrl+Space` | Dictate, then press Return |
 | `Cmd+Shift+J` | Dictate, wrapped in a template such as `\rs{...}` (`...` is the dictation; type it in the menu bar or Settings) |
-| `Esc` | Stop a recording |
+| `Esc` | Cancel and discard a recording |
 
 By default a shortcut starts recording and pressing it again stops; Settings can switch to hold-to-talk.
 
 - **Vocabulary hint** (Settings) helps Whisper with names, jargon and British spelling.
+- **Spoken language:** choose **English** or **Czech** at the top of the microphone menu; the tick marks the current choice. Settings also offers automatic detection.
 - **Keep microphone ready** keeps the mic open between recordings so the first word is never clipped.
 - **Offline recovery:** if a transcription fails for lack of network, the audio is kept and the menu offers to retry it.
 
