@@ -60,6 +60,7 @@ By default a shortcut starts recording and pressing it again stops; Settings can
 - **Vocabulary hint** (Settings) helps Whisper with names, jargon and British spelling.
 - **Spoken language:** choose **English** or **Czech** at the top of the microphone menu; the tick marks the current choice. Settings also offers automatic detection.
 - **Keep microphone ready** keeps the mic open between recordings so the first word is never clipped.
+- **Bluetooth headphones:** VoiceBar records from the Mac's built-in microphone when the default input is a Bluetooth headset, since opening the headset's microphone switches it to its call profile and degrades whatever is playing. Other inputs are used as they are.
 - **Offline recovery:** if a transcription fails for lack of network, the audio is kept and the menu offers to retry it.
 
 API keys live in the Keychain; other settings in the app's preferences.
