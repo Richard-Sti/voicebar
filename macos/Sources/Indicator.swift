@@ -15,6 +15,8 @@ final class RecordingIndicator {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
+        // Dictation runs in other apps; NSPanel otherwise hides on deactivation.
+        panel.hidesOnDeactivate = false
         panel.level = .statusBar
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]

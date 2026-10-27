@@ -1,8 +1,9 @@
 // Self-check for the parts of VoiceBar that run without a GUI.
-// Run: ./check.sh [--mic] [--network]
+// Run: ./check.sh [--indicator] [--mic] [--network]
+//   --indicator checks the floating dot in a logged-in graphical session
 //   --mic      records 1.5 s through the Recorder and checks the pre-roll
 //   --network  sends 1 s of silence to the transcription API
-import Foundation
+import Cocoa
 
 // Config parsing on a sample with every construct the reader supports.
 let sample = """
@@ -55,6 +56,27 @@ assert(wrap("a", in: "> ") == "> a")
 assert(wrap("a", in: "") == "a")
 
 print("offline checks passed")
+
+if CommandLine.arguments.contains("--indicator") {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        let indicator = RecordingIndicator()
+        indicator.show(.systemRed, reposition: true)
+        guard let panel = app.windows.first(where: { $0 is NSPanel }) else {
+            fatalError("recording indicator has no panel")
+        }
+        assert(!panel.hidesOnDeactivate, "dictation must remain visible in other apps")
+        assert(panel.isVisible)
+        indicator.show(.systemOrange, reposition: false)
+        assert(panel.isVisible)
+        indicator.hide()
+        assert(!panel.isVisible)
+        indicator.show(.systemRed, reposition: true)
+        assert(panel.isVisible, "the next recording must show the panel again")
+        indicator.hide()
+        print("indicator checks passed")
+    }
+}
 
 // Records 1.5 s through the app's Recorder; a room is never digitally silent,
 // so a zero peak means the capture is broken.
