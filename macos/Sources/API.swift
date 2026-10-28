@@ -35,6 +35,14 @@ func wrap(_ text: String, in template: String) -> String {
     return template.replacingCharacters(in: r, with: text)
 }
 
+/// Empty wrapper and the number of Left presses to reach its placeholder.
+func emptyWrapper(_ template: String) -> (text: String, left: Int) {
+    guard let r = template.range(of: "...") ?? template.range(of: "…") else {
+        return (template, 0)
+    }
+    return (wrap("", in: template), template[r.upperBound...].count)
+}
+
 /// Whisper transcription through an OpenAI-compatible endpoint (Groq or OpenAI).
 struct Transcriber {
     let baseURL: URL

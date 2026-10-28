@@ -7,6 +7,8 @@ enum Action: Int, CaseIterable {
     case bracket
     /// Escape, bound only while recording: stops and discards the recording.
     case escape
+    /// Inserts the wrapper with the cursor at its placeholder, without recording.
+    case insertWrapper
 }
 
 /// A key plus the exact set of modifiers held with it.

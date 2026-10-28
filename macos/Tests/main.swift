@@ -48,6 +48,14 @@ assert(isLikelyHallucination(""))
 assert(!isLikelyHallucination("Thank you for the referee report."))
 assert(!isLikelyHallucination("The UKIDSS deficit is shallower."))
 
+// Empty insertion lands where typing should begin, including Unicode suffixes.
+assert(emptyWrapper("\\rs{...}") == ("\\rs{}", 1))
+assert(emptyWrapper("\\rs{…}") == ("\\rs{}", 1))
+assert(emptyWrapper("[...] and ...") == ("[] and ...", 9))
+assert(emptyWrapper("...👩‍💻") == ("👩‍💻", 1))
+assert(emptyWrapper("> ") == ("> ", 0))
+assert(emptyWrapper("") == ("", 0))
+
 // The wrap template puts the dictation in place of its placeholder.
 assert(wrap("fix this", in: "\\rs{...}") == "\\rs{fix this}")
 assert(wrap("fix this", in: "\\rs{…}") == "\\rs{fix this}")

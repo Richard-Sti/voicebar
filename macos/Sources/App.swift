@@ -92,6 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
 
     private func hotkeyDown(_ action: Action) {
         if action == .escape { stopRecording(discard: true); return }
+        if action == .insertWrapper { insertWrapper(); return }
         switch state {
         case .idle: startRecording(action)
         case .recording where !settings.holdToTalk: stopRecording()
@@ -103,6 +104,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         if settings.holdToTalk, state == .recording, action == activeAction { stopRecording() }
     }
 
+
+    private func insertWrapper() {
+        guard state == .idle else { return }
+        guard AXIsProcessTrusted() else {
+            fail("Allow VoiceBar under Privacy & Security › Accessibility")
+            return
+        }
+        let target = NSWorkspace.shared.frontmostApplication
+        let insertion = emptyWrapper(settings.wrapTemplate)
+        guard !insertion.text.isEmpty else { return }
+        state = .processing
+        continuingIn = nil
+        Task {
+            defer { state = .idle }
+            await Typer.waitForModifierRelease()
+            guard target == NSWorkspace.shared.frontmostApplication else { return }
+            await Typer.paste(insertion.text)
+            guard target == NSWorkspace.shared.frontmostApplication else { return }
+            for _ in 0..<insertion.left { Typer.press(123 /* Left */) }
+            status = "Ready"
+        }
+    }
 
     // MARK: - Recording
 
@@ -273,6 +296,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         menu.addItem(.separator())
         if let hotkey = settings.hotkeys[.record] {
             info("\(settings.holdToTalk ? "Hold" : "Press") \(hotkey.label) to dictate")
+        }
+        if let hotkey = settings.hotkeys[.insertWrapper] {
+            info("Press \(hotkey.label) to insert empty wrapper")
         }
         if !lastTranscript.isEmpty {
             let short = lastTranscript.count > 40 ? lastTranscript.prefix(40) + "…" : Substring(lastTranscript)

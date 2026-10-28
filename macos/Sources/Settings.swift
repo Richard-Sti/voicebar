@@ -77,6 +77,11 @@ final class Settings: ObservableObject {
             d.set(Hotkey(key: "j", modifiers: ["cmd", "shift"])!.plist, forKey: "hotkey.\(Action.bracket)")
             d.set(true, forKey: "seededBracketHotkey")
         }
+        if !d.bool(forKey: "seededInsertWrapperHotkey") {
+            d.set(Hotkey(key: "k", modifiers: ["cmd", "shift"])!.plist,
+                  forKey: "hotkey.\(Action.insertWrapper)")
+            d.set(true, forKey: "seededInsertWrapperHotkey")
+        }
         var keys: [Action: Hotkey] = [:]
         for action in Action.allCases {
             keys[action] = Hotkey(plist: d.object(forKey: "hotkey.\(action)"))
@@ -204,6 +209,7 @@ struct SettingsView: View {
                 LabeledContent("Dictate") { ShortcutField(action: .record) }
                 LabeledContent("Dictate and press Return") { ShortcutField(action: .submit) }
                 LabeledContent("Dictate wrapped") { ShortcutField(action: .bracket) }
+                LabeledContent("Insert empty wrapper") { ShortcutField(action: .insertWrapper) }
                 TextField("Wrap in", text: $settings.wrapTemplate, prompt: Text("empty: no wrapping"))
                 Picker("Recording", selection: $settings.holdToTalk) {
                     Text("Press to start, press again to stop").tag(false)
